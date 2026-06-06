@@ -8,6 +8,7 @@ fun handleDragEnd(
     horizontalDragOffset: Float,
     verticalDragOffset: Float,
     onFanStateChange: (Boolean) -> Unit,
+    onCardsReorder: () -> Unit,
     threshold: Float = SWIPE_GESTURE_THRESHOLD
 ): Boolean {
     val isVerticalDominant = abs(verticalDragOffset) > abs(horizontalDragOffset)
@@ -24,6 +25,7 @@ fun handleDragEnd(
         isHorizontalDominant && abs(horizontalDragOffset) > threshold -> {
             handleHorizontalSwipe(
                 horizontalDragDistance = horizontalDragOffset,
+                onCardsReorder = onCardsReorder,
                 threshold = threshold
             )
         }

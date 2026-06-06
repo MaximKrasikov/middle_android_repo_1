@@ -24,9 +24,11 @@ fun handleVerticalSwipe(
 
 fun handleHorizontalSwipe(
     horizontalDragDistance: Float,
+    onCardsReorder: () -> Unit,
     threshold: Float = SWIPE_GESTURE_THRESHOLD
 ): Boolean {
     if (abs(horizontalDragDistance) > threshold) {
+        onCardsReorder()
         return true
     }
     return false

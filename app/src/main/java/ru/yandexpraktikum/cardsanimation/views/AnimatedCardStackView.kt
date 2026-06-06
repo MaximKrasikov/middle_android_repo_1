@@ -30,6 +30,9 @@ class AnimatedCardStackView @JvmOverloads constructor(
     private var verticalDragOffset = 0f
     private var horizontalDragOffset = 0f
 
+    private var isAnimating = false
+    private var animationStep = 0
+
 
     fun setCards(newCardDataList: List<CardData>) {
         cardDataList = newCardDataList
@@ -147,10 +150,25 @@ class AnimatedCardStackView @JvmOverloads constructor(
 
     private fun startCardSwapAnimation(bottomCard: AnimatedCardView) {
         // TODO: [Задание 5] Добавьте анимацию перетасовки карт
+        if (isAnimating) return
+
+        isAnimating = true
+        animationStep = 1
+
         // На данном этапе просто быстро двигаем нижнюю карту наверх
-        cardDataList = reorderCards(cardDataList)
+        val reorderedCards = cardDataList.drop(1) + cardDataList.first()
+        cardDataList = reorderCards(reorderedCards)
         setupCards()
+
+        isAnimating = false
+        animationStep = 0
     }
+
+    private fun handleHorizontalSwipe() {
+        val bottomCard = cards.firstOrNull() ?: return
+        startCardSwapAnimation(bottomCard)
+    }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
@@ -181,6 +199,7 @@ class AnimatedCardStackView @JvmOverloads constructor(
         handleDragEnd(
             horizontalDragOffset = horizontalDragOffset,
             verticalDragOffset = verticalDragOffset,
+            onCardsReorder = { handleHorizontalSwipe() },
             onFanStateChange = { newFanState -> setRotated(newFanState) },
         )
     }

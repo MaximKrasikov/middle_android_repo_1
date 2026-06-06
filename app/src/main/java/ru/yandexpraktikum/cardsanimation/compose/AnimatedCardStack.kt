@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import ru.yandexpraktikum.cardsanimation.model.CardData
+import ru.yandexpraktikum.cardsanimation.model.CardSwapAnimationState
 import ru.yandexpraktikum.cardsanimation.model.determineSwipeDirection
 import ru.yandexpraktikum.cardsanimation.model.handleDragEnd
 import ru.yandexpraktikum.cardsanimation.model.logSwipeDirection
@@ -41,6 +42,7 @@ fun calculateCardRotation(
 fun AnimatedCardStack(cards: List<CardData>) {
     val cardCount = cards.size
     var isRotated by remember { mutableStateOf(false) }
+    var animationState by remember { mutableStateOf(CardSwapAnimationState()) }
 
     Box(
         modifier = Modifier
@@ -57,14 +59,20 @@ fun AnimatedCardStack(cards: List<CardData>) {
                         horizontalDragOffset = 0f
                     },
                     onDragEnd = {
-                        val direction = determineSwipeDirection(dragOffsetX, dragOffsetY)
-                        logSwipeDirection("drag end", direction, dragOffsetX, dragOffsetY)
+                        if (!animationState.isAnimating) {
+                            val direction = determineSwipeDirection(dragOffsetX, dragOffsetY)
+                            logSwipeDirection("drag end", direction, dragOffsetX, dragOffsetY)
 
-                        handleDragEnd(
-                            horizontalDragOffset = horizontalDragOffset,
-                            verticalDragOffset = verticalDragOffset,
-                            onFanStateChange = { newFanState -> isRotated = newFanState },
-                        )
+                            handleDragEnd(
+                                horizontalDragOffset = horizontalDragOffset,
+                                verticalDragOffset = verticalDragOffset,
+                                onCardsReorder = {
+                                // TODO: Заменить анимированной версией в следующих этапах
+                                //currentCards = reorderCards(currentCards)
+                            },
+                                onFanStateChange = { newFanState -> isRotated = newFanState },
+                            )
+                        }
 
                         verticalDragOffset = 0f
                         horizontalDragOffset = 0f
