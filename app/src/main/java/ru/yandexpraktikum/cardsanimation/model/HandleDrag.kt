@@ -1,9 +1,17 @@
 package ru.yandexpraktikum.cardsanimation.model
 
 import kotlin.math.abs
-const val VERTICAL_SWIPE_THRESHOLD = 50f
-const val HORIZONTAL_SWIPE_THRESHOLD = 50f
 
+/**
+ * Обрабатывает завершение медленного перетаскивания: определяет доминирующее
+ * направление жеста и вызывает только один обработчик, предотвращая конфликты.
+ *
+ * @param horizontalDragOffset накопленное горизонтальное смещение
+ * @param verticalDragOffset накопленное вертикальное смещение
+ * @param onFanStateChange колбэк раскрытия/закрытия колоды (true — раскрыта)
+ * @param onCardsReorder колбэк запуска перестановки карт
+ * @return true, если жест превысил порог и был обработан
+ */
 fun handleDragEnd(
     horizontalDragOffset: Float,
     verticalDragOffset: Float,
@@ -31,35 +39,4 @@ fun handleDragEnd(
         }
         else -> false
     }
-}
-
-fun handleVerticalDragOffset(
-    verticalDragOffset: Float,
-    onExpand: () -> Unit,
-    onCollapse: () -> Unit,
-    threshold: Float = VERTICAL_SWIPE_THRESHOLD
-): Boolean {
-    return when {
-        verticalDragOffset < -threshold -> {
-            onExpand()
-            true
-        }
-        verticalDragOffset > threshold -> {
-            onCollapse()
-            true
-        }
-        else -> false
-    }
-}
-
-fun handleHorizontalDragOffset(
-    horizontalDragOffset: Float,
-    onSwapCards: () -> Unit,
-    threshold: Float = HORIZONTAL_SWIPE_THRESHOLD
-): Boolean {
-    if (abs(horizontalDragOffset) > threshold) {
-        onSwapCards()
-        return true
-    }
-    return false
 }

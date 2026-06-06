@@ -17,6 +17,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import ru.yandexpraktikum.cardsanimation.model.CardData
 import ru.yandexpraktikum.cardsanimation.model.CardSwapAnimationState
 import kotlin.math.cos
@@ -27,49 +28,82 @@ fun AnimatedCard(
     cardIndex: Int,
     cardData: CardData,
     targetRotation: Float,
+    finalRotation: Float,
     animationState: CardSwapAnimationState = CardSwapAnimationState(),
     onAnimationStepComplete: ((Int) -> Unit)? = null
 ) {
     val density = LocalDensity.current
     val isAnimating = animationState.isAnimating
     val animationStep = animationState.animationStep
+    val isBottomCard = cardIndex == 0
+    val shouldBringToFront = isAnimating && animationStep == 2 && isBottomCard
 
     val animatedRotation by animateFloatAsState(
-        targetValue = targetRotation,
-        animationSpec = tween(300),
+        targetValue = when {
+            animationStep == 3 -> finalRotation
+            isAnimating -> targetRotation
+            else -> targetRotation
+        },
+        animationSpec = tween(durationMillis = if (animationStep == 3) 300 else 800),
+        finishedListener = {
+            if (animationStep == 3 && isAnimating && cardIndex == 0) {
+                onAnimationStepComplete?.invoke(3)
+            }
+        },
         label = "rotation"
     )
+
     val animatedTranslationX by animateFloatAsState(
-        targetValue = if (isAnimating && animationStep == 1) {
-            val moveDistance = with(density) { 50.dp.toPx() }
-            val rotationRad = Math.toRadians(targetRotation.toDouble())
-            moveDistance * cos(rotationRad).toFloat()
-        } else 0f,
+        targetValue = when {
+            isAnimating && animationStep == 1 && isBottomCard -> {
+                val moveDistance = with(density) { 50.dp.toPx() }
+                val rotationRad = Math.toRadians(targetRotation.toDouble())
+                moveDistance * cos(rotationRad).toFloat()
+            }
+            isAnimating && animationStep == 2 && isBottomCard -> 0f
+            else -> 0f
+        },
         animationSpec = tween(durationMillis = 300),
-        finishedListener = { if (isAnimating && animationStep == 1) onAnimationStepComplete?.invoke(1) },
+        finishedListener = {
+            if (isAnimating && isBottomCard) {
+                when (animationStep) {
+                    1 -> onAnimationStepComplete?.invoke(1)
+                    2 -> onAnimationStepComplete?.invoke(2)
+                }
+            }
+        },
         label = "translationX"
     )
 
     val animatedTranslationY by animateFloatAsState(
-        targetValue = if (isAnimating && animationStep == 1) {
-            val moveDistance = with(density) { 50.dp.toPx() }
-            val rotationRad = Math.toRadians(targetRotation.toDouble())
-            moveDistance * sin(rotationRad).toFloat()
-        } else 0f,
+        targetValue = when {
+            isAnimating && animationStep == 1 && isBottomCard -> {
+                val moveDistance = with(density) { 50.dp.toPx() }
+                val rotationRad = Math.toRadians(targetRotation.toDouble())
+                moveDistance * sin(rotationRad).toFloat()
+            }
+            isAnimating && animationStep == 2 && isBottomCard -> 0f
+            else -> 0f
+        },
         animationSpec = tween(durationMillis = 300),
-        finishedListener = { if (isAnimating && animationStep == 1) onAnimationStepComplete?.invoke(1) },
         label = "translationY"
     )
 
     Card(
         modifier = Modifier
             .size(width = 100.dp, height = 160.dp)
-            // TODO: [Задание 5] Добавьте анимацию карты при свайпе вправо или влево
             .graphicsLayer {
                 translationX = if (isAnimating && animationStep < 3) animatedTranslationX else 0f
                 translationY = if (isAnimating && animationStep < 3) animatedTranslationY else 0f
                 rotationZ = animatedRotation
                 transformOrigin = TransformOrigin(0.5f, 1.0f)
+            }
+            .let { modifier ->
+                if (shouldBringToFront) {
+                    modifier.zIndex(1000f)
+                } else {
+                    modifier
+                }
             },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(
