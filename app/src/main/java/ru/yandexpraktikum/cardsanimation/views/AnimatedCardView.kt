@@ -43,12 +43,6 @@ class AnimatedCardView @JvmOverloads constructor(
     fun setStackPosition(index: Int) {
         cardView.cardElevation = (4 + index * 1).toFloat() * resources.displayMetrics.density
     }
-
-    // TODO: [Задание 1] Добавьте методы для анимации
-    // Подсказка: используйте ObjectAnimator для плавной анимации
-
-    // TODO: [Задание 1] Добавьте метод для анимации поворота карты (чтобы был плавный эффект раскрытия/закрытия колоды)
-    // fun animateToRotation(targetRotation: Float, duration: Long = 300) { ... }
     private var rotationAnimator: ObjectAnimator? = null
     fun animateToRotation(targetRotation: Float, duration: Long = 300) {
         rotationAnimator?.cancel()

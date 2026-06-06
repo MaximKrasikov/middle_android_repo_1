@@ -6,6 +6,9 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.widget.FrameLayout
 import ru.yandexpraktikum.cardsanimation.model.CardData
+import ru.yandexpraktikum.cardsanimation.model.determineSwipeDirection
+import ru.yandexpraktikum.cardsanimation.model.logSwipeDirection
+import kotlin.math.abs
 
 class AnimatedCardStackView @JvmOverloads constructor(
     context: Context,
@@ -16,6 +19,10 @@ class AnimatedCardStackView @JvmOverloads constructor(
     private var cardDataList: List<CardData> = emptyList()
     private val cards = mutableListOf<AnimatedCardView>()
     private var isRotated = false
+
+    private var dragOffsetX = 0f
+    private var dragOffsetY = 0f
+
 
     fun setCards(newCardDataList: List<CardData>) {
         cardDataList = newCardDataList
@@ -89,6 +96,30 @@ class AnimatedCardStackView @JvmOverloads constructor(
                 updateCardPositions(animate = true)
                 return true
             }
+
+            override fun onScroll(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                distanceX: Float,
+                distanceY: Float
+            ): Boolean {
+                dragOffsetX -= distanceX
+                dragOffsetY -= distanceY
+                val direction = determineSwipeDirection(distanceX, distanceY)
+                //logSwipeDirection("scroll", direction, distanceX, distanceY)
+                return true
+            }
+
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                val direction = determineSwipeDirection(velocityX, velocityY)
+                logSwipeDirection("fling", direction, velocityX, velocityY)
+                return true
+            }
         })
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -105,6 +136,17 @@ class AnimatedCardStackView @JvmOverloads constructor(
         setupCards()
     }
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                dragOffsetX = 0f
+                dragOffsetY = 0f
+            }
+            MotionEvent.ACTION_UP -> {
+                dragOffsetX = 0f
+                dragOffsetY = 0f
+            }
+        }
+
         gestureDetector.onTouchEvent(event)
         return true
     }
