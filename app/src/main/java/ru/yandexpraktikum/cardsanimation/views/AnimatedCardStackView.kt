@@ -8,6 +8,7 @@ import android.widget.FrameLayout
 import ru.yandexpraktikum.cardsanimation.model.CardData
 import ru.yandexpraktikum.cardsanimation.model.SWIPE_GESTURE_THRESHOLD
 import ru.yandexpraktikum.cardsanimation.model.determineSwipeDirection
+import ru.yandexpraktikum.cardsanimation.model.handleDragEnd
 import ru.yandexpraktikum.cardsanimation.model.handleFling
 import ru.yandexpraktikum.cardsanimation.model.handleVerticalSwipe
 import ru.yandexpraktikum.cardsanimation.model.logSwipeDirection
@@ -159,20 +160,8 @@ class AnimatedCardStackView @JvmOverloads constructor(
                 horizontalDragOffset = 0f
             }
             MotionEvent.ACTION_UP -> {
-                val direction = determineSwipeDirection(dragOffsetX, dragOffsetY)
-                logSwipeDirection("drag end", direction, dragOffsetX, dragOffsetY)
+                onDragGestureEnd()
 
-                val threshold = SWIPE_GESTURE_THRESHOLD
-                val isVerticalDominant = abs(verticalDragOffset) > abs(horizontalDragOffset)
-
-                when {
-                    isVerticalDominant && abs(verticalDragOffset) > threshold -> {
-                        handleVerticalSwipe(
-                            verticalDragDistance = verticalDragOffset,
-                            onFanStateChange = { newFanState -> setRotated(newFanState) }
-                        )
-                    }
-                }
                 dragOffsetX = 0f
                 dragOffsetY = 0f
                 verticalDragOffset = 0f
@@ -182,6 +171,18 @@ class AnimatedCardStackView @JvmOverloads constructor(
 
         gestureDetector.onTouchEvent(event)
         return true
+    }
+
+    private fun onDragGestureEnd() {
+
+        val direction = determineSwipeDirection(dragOffsetX, dragOffsetY)
+        logSwipeDirection("drag end", direction, dragOffsetX, dragOffsetY)
+
+        handleDragEnd(
+            horizontalDragOffset = horizontalDragOffset,
+            verticalDragOffset = verticalDragOffset,
+            onFanStateChange = { newFanState -> setRotated(newFanState) },
+        )
     }
 
     private fun setRotated(rotated: Boolean) {

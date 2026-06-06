@@ -13,9 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import ru.yandexpraktikum.cardsanimation.model.CardData
-import ru.yandexpraktikum.cardsanimation.model.SWIPE_GESTURE_THRESHOLD
 import ru.yandexpraktikum.cardsanimation.model.determineSwipeDirection
-import ru.yandexpraktikum.cardsanimation.model.handleVerticalSwipe
+import ru.yandexpraktikum.cardsanimation.model.handleDragEnd
 import ru.yandexpraktikum.cardsanimation.model.logSwipeDirection
 import kotlin.math.abs
 
@@ -61,18 +60,11 @@ fun AnimatedCardStack(cards: List<CardData>) {
                         val direction = determineSwipeDirection(dragOffsetX, dragOffsetY)
                         logSwipeDirection("drag end", direction, dragOffsetX, dragOffsetY)
 
-                        val threshold = SWIPE_GESTURE_THRESHOLD
-                        val isVerticalDominant =
-                            abs(verticalDragOffset) > abs(horizontalDragOffset)
-
-                        when {
-                            isVerticalDominant && abs(verticalDragOffset) > threshold -> {
-                                handleVerticalSwipe(
-                                    verticalDragDistance = verticalDragOffset,
-                                    onFanStateChange = { newFanState -> isRotated = newFanState }
-                                )
-                            }
-                        }
+                        handleDragEnd(
+                            horizontalDragOffset = horizontalDragOffset,
+                            verticalDragOffset = verticalDragOffset,
+                            onFanStateChange = { newFanState -> isRotated = newFanState },
+                        )
 
                         verticalDragOffset = 0f
                         horizontalDragOffset = 0f

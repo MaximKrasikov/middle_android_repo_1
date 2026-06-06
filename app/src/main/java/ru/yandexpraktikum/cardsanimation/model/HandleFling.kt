@@ -1,8 +1,6 @@
 package ru.yandexpraktikum.cardsanimation.model
 
 import kotlin.math.abs
-
-
 const val VERTICAL_FLING_VELOCITY_THRESHOLD = 500f
 const val HORIZONTAL_FLING_VELOCITY_THRESHOLD = 500f
 

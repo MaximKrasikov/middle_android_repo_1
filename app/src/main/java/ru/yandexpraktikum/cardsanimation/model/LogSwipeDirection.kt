@@ -2,7 +2,7 @@ package ru.yandexpraktikum.cardsanimation.model
 
 import android.util.Log
 
-private const val TAG = "AnimatedSwipeCardLog"
+private const val CARD_STACK_GESTURE_TAG = "AnimatedSwipeCardLog"
 
 fun logSwipeDirection(
     source: String,
@@ -12,7 +12,7 @@ fun logSwipeDirection(
 ) {
     if (direction == SwipeDirection.UNDETERMINED) return
     Log.d(
-        TAG,
+        CARD_STACK_GESTURE_TAG,
         "$source: $direction (offsetX=$offsetX, offsetY=$offsetY)"
     )
 }
