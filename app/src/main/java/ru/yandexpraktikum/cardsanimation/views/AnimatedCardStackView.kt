@@ -6,7 +6,10 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.widget.FrameLayout
 import ru.yandexpraktikum.cardsanimation.model.CardData
+import ru.yandexpraktikum.cardsanimation.model.SWIPE_GESTURE_THRESHOLD
 import ru.yandexpraktikum.cardsanimation.model.determineSwipeDirection
+import ru.yandexpraktikum.cardsanimation.model.handleFling
+import ru.yandexpraktikum.cardsanimation.model.handleVerticalSwipe
 import ru.yandexpraktikum.cardsanimation.model.logSwipeDirection
 import kotlin.math.abs
 
@@ -22,6 +25,9 @@ class AnimatedCardStackView @JvmOverloads constructor(
 
     private var dragOffsetX = 0f
     private var dragOffsetY = 0f
+
+    private var verticalDragOffset = 0f
+    private var horizontalDragOffset = 0f
 
 
     fun setCards(newCardDataList: List<CardData>) {
@@ -105,8 +111,11 @@ class AnimatedCardStackView @JvmOverloads constructor(
             ): Boolean {
                 dragOffsetX -= distanceX
                 dragOffsetY -= distanceY
-                val direction = determineSwipeDirection(distanceX, distanceY)
-                //logSwipeDirection("scroll", direction, distanceX, distanceY)
+                if (abs(distanceY) >= abs(distanceX)) {
+                    verticalDragOffset -= distanceY
+                } else {
+                    horizontalDragOffset -= distanceX
+                }
                 return true
             }
 
@@ -118,6 +127,12 @@ class AnimatedCardStackView @JvmOverloads constructor(
             ): Boolean {
                 val direction = determineSwipeDirection(velocityX, velocityY)
                 logSwipeDirection("fling", direction, velocityX, velocityY)
+                handleFling(
+                    velocityX = velocityX,
+                    velocityY = velocityY,
+                    onExpand = { setRotated(true) },
+                    onCollapse = { setRotated(false) },
+                )
                 return true
             }
         })
@@ -140,10 +155,28 @@ class AnimatedCardStackView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 dragOffsetX = 0f
                 dragOffsetY = 0f
+                verticalDragOffset = 0f
+                horizontalDragOffset = 0f
             }
             MotionEvent.ACTION_UP -> {
+                val direction = determineSwipeDirection(dragOffsetX, dragOffsetY)
+                logSwipeDirection("drag end", direction, dragOffsetX, dragOffsetY)
+
+                val threshold = SWIPE_GESTURE_THRESHOLD
+                val isVerticalDominant = abs(verticalDragOffset) > abs(horizontalDragOffset)
+
+                when {
+                    isVerticalDominant && abs(verticalDragOffset) > threshold -> {
+                        handleVerticalSwipe(
+                            verticalDragDistance = verticalDragOffset,
+                            onFanStateChange = { newFanState -> setRotated(newFanState) }
+                        )
+                    }
+                }
                 dragOffsetX = 0f
                 dragOffsetY = 0f
+                verticalDragOffset = 0f
+                horizontalDragOffset = 0f
             }
         }
 
@@ -151,14 +184,16 @@ class AnimatedCardStackView @JvmOverloads constructor(
         return true
     }
 
+    private fun setRotated(rotated: Boolean) {
+        if (isRotated == rotated) return
+        isRotated = rotated
+        updateCardPositions(animate = true)
+    }
+
     // Простая функция перестановки карт
     fun reorderCards(cards: List<CardData>): List<CardData> {
         return cards.drop(1) + cards.first()
     }
-    // TODO: [Задание 2] Добавьте обработку жестов
-    // Подсказка: Используйте GestureDetector с методом onFling для обработки свайпов
-
-    // TODO: [Задание 3] Добавьте обработку вертикальных свайпов (вверх/вниз)
 
     // TODO: [Задание 4] Добавьте обработку горизонтальных свайпов (влево/вправо)
 }

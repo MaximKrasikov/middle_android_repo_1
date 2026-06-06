@@ -1,6 +1,5 @@
 package ru.yandexpraktikum.cardsanimation.compose
 
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -14,9 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import ru.yandexpraktikum.cardsanimation.model.CardData
-import ru.yandexpraktikum.cardsanimation.model.SwipeDirection
+import ru.yandexpraktikum.cardsanimation.model.SWIPE_GESTURE_THRESHOLD
 import ru.yandexpraktikum.cardsanimation.model.determineSwipeDirection
+import ru.yandexpraktikum.cardsanimation.model.handleVerticalSwipe
 import ru.yandexpraktikum.cardsanimation.model.logSwipeDirection
+import kotlin.math.abs
 
 /**
  * Метод для вычисления поворота карты в конкретной позиции
@@ -42,33 +43,56 @@ fun AnimatedCardStack(cards: List<CardData>) {
     val cardCount = cards.size
     var isRotated by remember { mutableStateOf(false) }
 
-    // TODO: [Задание 2] Добавьте обработку жестов
-    // Подсказка: Используйте Modifier.pointerInput() с методом detectDragGestures()
-
     Box(
         modifier = Modifier
             .pointerInput(Unit) {
                 var dragOffsetX = 0f
                 var dragOffsetY = 0f
+                var verticalDragOffset = 0f
+                var horizontalDragOffset = 0f
                 detectDragGestures(
                     onDragStart = {
                         dragOffsetX = 0f
                         dragOffsetY = 0f
+                        verticalDragOffset = 0f
+                        horizontalDragOffset = 0f
                     },
                     onDragEnd = {
-                        // TODO: Обработка жестов в заданиях 3 и 4
                         val direction = determineSwipeDirection(dragOffsetX, dragOffsetY)
                         logSwipeDirection("drag end", direction, dragOffsetX, dragOffsetY)
+
+                        val threshold = SWIPE_GESTURE_THRESHOLD
+                        val isVerticalDominant =
+                            abs(verticalDragOffset) > abs(horizontalDragOffset)
+
+                        when {
+                            isVerticalDominant && abs(verticalDragOffset) > threshold -> {
+                                handleVerticalSwipe(
+                                    verticalDragDistance = verticalDragOffset,
+                                    onFanStateChange = { newFanState -> isRotated = newFanState }
+                                )
+                            }
+                        }
+
+                        verticalDragOffset = 0f
+                        horizontalDragOffset = 0f
                     },
                     onDragCancel = {
                         dragOffsetX = 0f
                         dragOffsetY = 0f
+                        horizontalDragOffset = 0f
+                        verticalDragOffset = 0f
                     }
 
                 ) { _, dragAmount ->
                     // Определяем направление свайпа
                     dragOffsetX += dragAmount.x
                     dragOffsetY += dragAmount.y
+                    if (abs(dragAmount.y) >= abs(dragAmount.x)) {
+                        verticalDragOffset += dragAmount.y
+                    } else {
+                        horizontalDragOffset += dragAmount.x
+                    }
                 }
             }
             .clickable(
