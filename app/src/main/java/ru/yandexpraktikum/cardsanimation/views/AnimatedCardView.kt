@@ -1,8 +1,10 @@
 package ru.yandexpraktikum.cardsanimation.views
 
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.cardview.widget.CardView
@@ -47,6 +49,15 @@ class AnimatedCardView @JvmOverloads constructor(
 
     // TODO: [Задание 1] Добавьте метод для анимации поворота карты (чтобы был плавный эффект раскрытия/закрытия колоды)
     // fun animateToRotation(targetRotation: Float, duration: Long = 300) { ... }
+    private var rotationAnimator: ObjectAnimator? = null
+    fun animateToRotation(targetRotation: Float, duration: Long = 300) {
+        rotationAnimator?.cancel()
+        rotationAnimator = ObjectAnimator.ofFloat(this, ROTATION, rotation, targetRotation).apply {
+            this.duration = duration
+            interpolator = DecelerateInterpolator()
+            start()
+        }
+    }
 
     // TODO: [Задание 5, шаг 1] Добавьте метод для анимации перетасовки карт (первым шагом нижняя карта двигается вправо)
     // fun moveCardRight(onComplete: (() -> Unit)? = null) { ... }

@@ -2,6 +2,8 @@ package ru.yandexpraktikum.cardsanimation.views
 
 import android.content.Context
 import android.util.AttributeSet
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.widget.FrameLayout
 import ru.yandexpraktikum.cardsanimation.model.CardData
 
@@ -40,7 +42,7 @@ class AnimatedCardStackView @JvmOverloads constructor(
         removeAllViews()
     }
 
-    private fun updateCardPositions() {
+    private fun updateCardPositions(animate: Boolean = false) {
         val cardCount = cards.size
 
         cards.forEachIndexed { index, cardView ->
@@ -72,9 +74,22 @@ class AnimatedCardStackView @JvmOverloads constructor(
             cardView.pivotY = cardHeight
 
             // TODO: [Задание 1] Замените на метод, который анимирует движение карты
-            cardView.rotation = targetRotation
+            if (animate) {
+                cardView.animateToRotation(targetRotation)
+            } else {
+                cardView.rotation = targetRotation
+            }
         }
     }
+
+    private val gestureDetector =
+        GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                isRotated = !isRotated
+                updateCardPositions(animate = true)
+                return true
+            }
+        })
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
@@ -88,6 +103,10 @@ class AnimatedCardStackView @JvmOverloads constructor(
         // На данном этапе просто быстро двигаем нижнюю карту наверх
         cardDataList = reorderCards(cardDataList)
         setupCards()
+    }
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        gestureDetector.onTouchEvent(event)
+        return true
     }
 
     // Простая функция перестановки карт
