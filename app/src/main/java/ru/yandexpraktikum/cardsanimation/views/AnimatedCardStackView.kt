@@ -149,19 +149,16 @@ class AnimatedCardStackView @JvmOverloads constructor(
     }
 
     private fun startCardSwapAnimation(bottomCard: AnimatedCardView) {
-        // TODO: [Задание 5] Добавьте анимацию перетасовки карт
         if (isAnimating) return
 
         isAnimating = true
         animationStep = 1
 
-        // На данном этапе просто быстро двигаем нижнюю карту наверх
-        val reorderedCards = cardDataList.drop(1) + cardDataList.first()
-        cardDataList = reorderCards(reorderedCards)
-        setupCards()
-
-        isAnimating = false
-        animationStep = 0
+        bottomCard.moveCardRight {
+            // TODO: Добавить Шаг 2 в следующем задании
+            isAnimating = false
+            animationStep = 0
+        }
     }
 
     private fun handleHorizontalSwipe() {
