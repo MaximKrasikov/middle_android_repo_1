@@ -1,8 +1,13 @@
 package ru.yandexpraktikum.cardsanimation.views
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.cardview.widget.CardView
@@ -42,18 +47,95 @@ class AnimatedCardView @JvmOverloads constructor(
         cardView.cardElevation = (4 + index * 1).toFloat() * resources.displayMetrics.density
     }
 
-    // TODO: [Задание 1] Добавьте методы для анимации
-    // Подсказка: используйте ObjectAnimator для плавной анимации
+    /** Активный аниматор поворота — отменяется при запуске новой анимации */
+    private var rotationAnimator: ObjectAnimator? = null
 
-    // TODO: [Задание 1] Добавьте метод для анимации поворота карты (чтобы был плавный эффект раскрытия/закрытия колоды)
-    // fun animateToRotation(targetRotation: Float, duration: Long = 300) { ... }
+    /**
+     * Плавно поворачивает карту к целевому углу.
+     * Используется при сворачивании/разворачивании колоды.
+     */
+    fun animateToRotation(targetRotation: Float, duration: Long = 300) {
+        rotationAnimator?.cancel()
+        rotationAnimator = ObjectAnimator.ofFloat(this, ROTATION, rotation, targetRotation).apply {
+            this.duration = duration
+            interpolator = DecelerateInterpolator()
+            start()
+        }
+    }
 
-    // TODO: [Задание 5, шаг 1] Добавьте метод для анимации перетасовки карт (первым шагом нижняя карта двигается вправо)
-    // fun moveCardRight(onComplete: (() -> Unit)? = null) { ... }
+    /**
+     * Шаг 1 перетасовки: сдвигает карту вправо вдоль оси её текущего поворота.
+     * Смещение вычисляется через cos/sin угла поворота.
+     */
+    fun moveCardRight(onComplete: (() -> Unit)? = null) {
+        val moveDistance = 50f * resources.displayMetrics.density
+        val currentRotationRad = Math.toRadians(rotation.toDouble())
 
-    // TODO: [Задание 5, шаг 2] Добавьте метод для анимации выдвижения нижней карты наверх
-    // fun moveCardToTop(onComplete: (() -> Unit)? = null) { ... }
+        val deltaX = moveDistance * Math.cos(currentRotationRad).toFloat()
+        val deltaY = moveDistance * Math.sin(currentRotationRad).toFloat()
 
-    // TODO: [Задание 5, шаг 3] Добавьте анимацию перемещения всей колоды карты в желаемую позицию
-    // fun adjustToFinalPosition(finalRotation: Float, finalZOrder: Int, onComplete: (() -> Unit)? = null) { ... }
+        val currentX = x
+        val currentY = y
+
+        val animatorX = ObjectAnimator.ofFloat(this, "x", currentX, currentX + deltaX)
+        val animatorY = ObjectAnimator.ofFloat(this, "y", currentY, currentY + deltaY)
+
+        val animatorSet = AnimatorSet().apply {
+            playTogether(animatorX, animatorY)
+            duration = 300
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    onComplete?.invoke()
+                }
+            })
+        }
+
+        animatorSet.start()
+    }
+
+    /**
+     * Шаг 2 перетасовки: перемещает карту в центр родительского контейнера.
+     */
+    fun moveCardToTop(onComplete: (() -> Unit)? = null) {
+        val parent = parent as? FrameLayout ?: return
+        val cardWidth = 100f * resources.displayMetrics.density
+        val cardHeight = 160f * resources.displayMetrics.density
+        val centerX = parent.width / 2f - cardWidth / 2f
+        val centerY = parent.height / 2f - cardHeight / 2f
+
+        val animatorX = ObjectAnimator.ofFloat(this, "x", x, centerX)
+        val animatorY = ObjectAnimator.ofFloat(this, "y", y, centerY)
+
+        val animatorSet = AnimatorSet().apply {
+            playTogether(animatorX, animatorY)
+            duration = 300
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    onComplete?.invoke()
+                }
+            })
+        }
+
+        animatorSet.start()
+    }
+
+    /**
+     * Шаг 3 перетасовки: поворачивает карту в финальное положение и восстанавливает z-порядок.
+     */
+    fun adjustToFinalPosition(
+        finalRotation: Float,
+        finalZOrder: Int,
+        onComplete: (() -> Unit)? = null
+    ) {
+        ObjectAnimator.ofFloat(this, ROTATION, rotation, finalRotation).apply {
+            duration = 300
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    setStackPosition(finalZOrder)
+                    onComplete?.invoke()
+                }
+            })
+            start()
+        }
+    }
 } 
