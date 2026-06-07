@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import ru.yandexpraktikum.cardsanimation.model.CardData
 import ru.yandexpraktikum.cardsanimation.model.CardSwapAnimationState
-import ru.yandexpraktikum.cardsanimation.model.SwipeDirection
+import ru.yandexpraktikum.cardsanimation.model.CardSwapAnimationStep
 import ru.yandexpraktikum.cardsanimation.model.determineSwipeDirection
 import ru.yandexpraktikum.cardsanimation.model.handleDragEnd
 import ru.yandexpraktikum.cardsanimation.model.logSwipeDirection
@@ -25,7 +25,7 @@ import kotlin.math.abs
 /**
  * Метод для вычисления поворота карты в конкретной позиции
  */
-fun calculateCardRotation(
+private fun calculateCardRotation(
     cardIndex: Int,
     cardCount: Int,
     isRotated: Boolean
@@ -47,11 +47,15 @@ fun AnimatedCardStack(cards: List<CardData>) {
     val cardCount = cardList.size
     var isRotated by remember { mutableStateOf(false) }
     var animationState by remember { mutableStateOf(CardSwapAnimationState()) }
+    val interactionSource = remember { MutableInteractionSource() }
 
     val animationStateRef = rememberUpdatedState(animationState)
-    val startCardSwapAnimation = rememberUpdatedState<() -> Unit>({
+    val startCardSwapAnimation by rememberUpdatedState(newValue = {
         if (animationState.isAnimating) return@rememberUpdatedState
-        animationState = CardSwapAnimationState(isAnimating = true, animationStep = 1)
+        animationState = CardSwapAnimationState(
+            isAnimating = true,
+            animationStep = CardSwapAnimationStep.MOVE_AWAY
+        )
     })
 
     Box(
@@ -79,7 +83,7 @@ fun AnimatedCardStack(cards: List<CardData>) {
                                 horizontalDragOffset = horizontalDragOffset,
                                 verticalDragOffset = verticalDragOffset,
                                 onFanStateChange = { newFanState -> isRotated = newFanState },
-                                onCardsReorder = { startCardSwapAnimation.value() }
+                                onCardsReorder = { startCardSwapAnimation() }
                             )
                         }
                         verticalDragOffset = 0f
@@ -103,7 +107,7 @@ fun AnimatedCardStack(cards: List<CardData>) {
                 }
             }
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = interactionSource,
                 indication = null
             ) {
                 if (!animationState.isAnimating) {
@@ -115,12 +119,10 @@ fun AnimatedCardStack(cards: List<CardData>) {
         cardList.forEachIndexed { i, cardData ->
             key(cardData.imageResId) {
                 val targetRotation = calculateCardRotation(i, cardCount, isRotated)
-                val finalRotation = calculateCardRotation(i, cardCount, isRotated)
 
                 AnimatedCard(
                     cardIndex = i,
                     targetRotation = targetRotation,
-                    finalRotation = finalRotation,
                     cardData = cardData,
                     animationState = animationState,
                     onAnimationStepComplete = { step ->
@@ -134,9 +136,7 @@ fun AnimatedCardStack(cards: List<CardData>) {
                             onAnimationComplete = {
                                 animationState = CardSwapAnimationState()
                             },
-                            onReorderCards = {
-                                cardList = reorderCards(cardList)
-                            }
+                            onReorderCards = { cardList = reorderCards(cardList) }
                         )
                     }
                 )
@@ -146,7 +146,7 @@ fun AnimatedCardStack(cards: List<CardData>) {
 }
 
 // Простая функция перестановки карт
-fun reorderCards(cards: List<CardData>): List<CardData> {
+private fun reorderCards(cards: List<CardData>): List<CardData> {
     return cards.drop(1) + cards.first()
 }
 
@@ -154,21 +154,22 @@ fun reorderCards(cards: List<CardData>): List<CardData> {
  * Управляет переходами между шагами анимации перетасовки.
  * Только нижняя карта (index 0) инициирует смену шагов.
  */
-fun handleAnimationStepComplete(
-    step: Int,
+private fun handleAnimationStepComplete(
+    step: CardSwapAnimationStep,
     cardIndex: Int,
-    onStepChange: (Int) -> Unit,
+    onStepChange: (CardSwapAnimationStep) -> Unit,
     onAnimationComplete: () -> Unit,
     onReorderCards: () -> Unit
 ) {
     if (cardIndex == 0) {
         when (step) {
-            1 -> onStepChange(2)
-            2 -> {
+            CardSwapAnimationStep.MOVE_AWAY -> onStepChange(CardSwapAnimationStep.RETURN_BACK)
+            CardSwapAnimationStep.RETURN_BACK -> {
                 onReorderCards()
-                onStepChange(3)
+                onStepChange(CardSwapAnimationStep.SETTLE_ROTATION)
             }
-            3 -> onAnimationComplete()
+            CardSwapAnimationStep.SETTLE_ROTATION -> onAnimationComplete()
+            CardSwapAnimationStep.NONE -> Unit
         }
     }
 }

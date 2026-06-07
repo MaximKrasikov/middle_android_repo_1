@@ -41,6 +41,10 @@ class AnimatedCardStackView @JvmOverloads constructor(
     /** true, если направление уже определено через onFling */
     private var flingHandled = false
 
+    init {
+        isClickable = true
+    }
+
     /**
      * Детектор жестов: onScroll накапливает смещение,
      * onFling обрабатывает быстрые свайпы.
@@ -93,10 +97,6 @@ class AnimatedCardStackView @JvmOverloads constructor(
             }
         }
     )
-
-    init {
-        isClickable = true
-    }
 
     fun setCards(newCardDataList: List<CardData>) {
         cardDataList = newCardDataList
@@ -261,10 +261,6 @@ class AnimatedCardStackView @JvmOverloads constructor(
     private fun handleHorizontalSwipe() {
         val bottomCard = cards.firstOrNull() ?: return
         startCardSwapAnimation(bottomCard)
-    }
-
-    fun reorderCards(cards: List<CardData>): List<CardData> {
-        return cards.drop(1) + cards.first()
     }
 
     /**

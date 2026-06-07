@@ -20,34 +20,41 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import ru.yandexpraktikum.cardsanimation.model.CardData
 import ru.yandexpraktikum.cardsanimation.model.CardSwapAnimationState
+import ru.yandexpraktikum.cardsanimation.model.CardSwapAnimationStep
 import kotlin.math.cos
 import kotlin.math.sin
+
+private const val ROTATION_DEFAULT_DURATION_MS = 800
+private const val ROTATION_SETTLE_DURATION_MS = 300
+private const val TRANSLATION_DURATION_MS = 300
 
 @Composable
 fun AnimatedCard(
     cardIndex: Int,
     cardData: CardData,
     targetRotation: Float,
-    finalRotation: Float,
     animationState: CardSwapAnimationState = CardSwapAnimationState(),
-    onAnimationStepComplete: ((Int) -> Unit)? = null
+    onAnimationStepComplete: (CardSwapAnimationStep) -> Unit = {}
 ) {
     val density = LocalDensity.current
     val isAnimating = animationState.isAnimating
     val animationStep = animationState.animationStep
     val isBottomCard = cardIndex == 0
-    val shouldBringToFront = isAnimating && animationStep == 2 && isBottomCard
+    val shouldBringToFront =
+        isAnimating && animationStep == CardSwapAnimationStep.RETURN_BACK && isBottomCard
 
     val animatedRotation by animateFloatAsState(
-        targetValue = when {
-            animationStep == 3 -> finalRotation
-            isAnimating -> targetRotation
-            else -> targetRotation
-        },
-        animationSpec = tween(durationMillis = if (animationStep == 3) 300 else 800),
+        targetValue = targetRotation,
+        animationSpec = tween(
+            durationMillis = if (animationStep == CardSwapAnimationStep.SETTLE_ROTATION) {
+                ROTATION_SETTLE_DURATION_MS
+            } else {
+                ROTATION_DEFAULT_DURATION_MS
+            }
+        ),
         finishedListener = {
-            if (animationStep == 3 && isAnimating && cardIndex == 0) {
-                onAnimationStepComplete?.invoke(3)
+            if (animationStep == CardSwapAnimationStep.SETTLE_ROTATION && isAnimating && cardIndex == 0) {
+                onAnimationStepComplete(CardSwapAnimationStep.SETTLE_ROTATION)
             }
         },
         label = "rotation"
@@ -55,20 +62,22 @@ fun AnimatedCard(
 
     val animatedTranslationX by animateFloatAsState(
         targetValue = when {
-            isAnimating && animationStep == 1 && isBottomCard -> {
+            isAnimating && animationStep == CardSwapAnimationStep.MOVE_AWAY && isBottomCard -> {
                 val moveDistance = with(density) { 50.dp.toPx() }
                 val rotationRad = Math.toRadians(targetRotation.toDouble())
                 moveDistance * cos(rotationRad).toFloat()
             }
-            isAnimating && animationStep == 2 && isBottomCard -> 0f
+            isAnimating && animationStep == CardSwapAnimationStep.RETURN_BACK && isBottomCard -> 0f
             else -> 0f
         },
-        animationSpec = tween(durationMillis = 300),
+        animationSpec = tween(durationMillis = TRANSLATION_DURATION_MS),
         finishedListener = {
             if (isAnimating && isBottomCard) {
                 when (animationStep) {
-                    1 -> onAnimationStepComplete?.invoke(1)
-                    2 -> onAnimationStepComplete?.invoke(2)
+                    CardSwapAnimationStep.MOVE_AWAY -> onAnimationStepComplete(CardSwapAnimationStep.MOVE_AWAY)
+                    CardSwapAnimationStep.RETURN_BACK -> onAnimationStepComplete(CardSwapAnimationStep.RETURN_BACK)
+                    CardSwapAnimationStep.SETTLE_ROTATION,
+                    CardSwapAnimationStep.NONE -> Unit
                 }
             }
         },
@@ -77,34 +86,38 @@ fun AnimatedCard(
 
     val animatedTranslationY by animateFloatAsState(
         targetValue = when {
-            isAnimating && animationStep == 1 && isBottomCard -> {
+            isAnimating && animationStep == CardSwapAnimationStep.MOVE_AWAY && isBottomCard -> {
                 val moveDistance = with(density) { 50.dp.toPx() }
                 val rotationRad = Math.toRadians(targetRotation.toDouble())
                 moveDistance * sin(rotationRad).toFloat()
             }
-            isAnimating && animationStep == 2 && isBottomCard -> 0f
+            isAnimating && animationStep == CardSwapAnimationStep.RETURN_BACK && isBottomCard -> 0f
             else -> 0f
         },
-        animationSpec = tween(durationMillis = 300),
+        animationSpec = tween(durationMillis = TRANSLATION_DURATION_MS),
         label = "translationY"
     )
 
-    Card(
-        modifier = Modifier
-            .size(width = 100.dp, height = 160.dp)
-            .graphicsLayer {
-                translationX = if (isAnimating && animationStep < 3) animatedTranslationX else 0f
-                translationY = if (isAnimating && animationStep < 3) animatedTranslationY else 0f
-                rotationZ = animatedRotation
-                transformOrigin = TransformOrigin(0.5f, 1.0f)
+    val cardModifier = Modifier
+        .size(width = 100.dp, height = 160.dp)
+        .graphicsLayer {
+            translationX = if (isAnimating && animationStep != CardSwapAnimationStep.SETTLE_ROTATION) {
+                animatedTranslationX
+            } else {
+                0f
             }
-            .let { modifier ->
-                if (shouldBringToFront) {
-                    modifier.zIndex(1000f)
-                } else {
-                    modifier
-                }
-            },
+            translationY = if (isAnimating && animationStep != CardSwapAnimationStep.SETTLE_ROTATION) {
+                animatedTranslationY
+            } else {
+                0f
+            }
+            rotationZ = animatedRotation
+            transformOrigin = TransformOrigin(0.5f, 1.0f)
+        }
+        .then(if (shouldBringToFront) Modifier.zIndex(1000f) else Modifier)
+
+    Card(
+        modifier = cardModifier,
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(
             defaultElevation = (4 + cardIndex).dp
